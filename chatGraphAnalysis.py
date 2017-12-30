@@ -1,7 +1,9 @@
 from __future__ import print_function
 
 #How to test runs on Digital Ocean (works because of __init__.py - https://stackoverflow.com/questions/4383571/importing-files-from-different-folder)
-#from getTwitchChatData.chatGraphAnalysis import getChatGraphAnalysis
+#from getTwitchChatData.chatGraphAnalysis import getChatGraphAnalysis, subscribersAcrossMultipleVideos
+#TESTING
+#from getTwitchChatData.chatGraphAnalysis import killAllChromeProcessesEitherOS, getVideosForStreamerBETTER, subscribers, getData, getVideoPath, videoDataExists
 
 
 #import json
@@ -107,10 +109,16 @@ def getVideosForStreamerBETTER(twitchName):
 		soup = getSoupFromUrl(url)
 		durations = [span.text for span in soup.find_all("span", {"data-a-target":"tw-stat-value"})][1::2]
 		links = [a['href'][len('/videos/'):] for a in soup.find_all("a", {"data-a-target":"video-preview-card-image-link"})]
-		for i in range(len(links)):
+		linksCleaned = []
+		for link in links:
+			if '?' in link:
+				linksCleaned.append(link[:link.find('?')])
+			else:
+				linksCleaned.append(link)
+		for i in range(len(linksCleaned)):
 			# If len of vide is at least one hour
 			if len(durations[i]) >= 6:
-				videoIDs.append(links[i])
+				videoIDs.append(linksCleaned[i])
 	except:
 		videoIDs = []
 	return videoIDs

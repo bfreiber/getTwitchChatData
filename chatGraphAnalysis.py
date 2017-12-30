@@ -1,4 +1,9 @@
 from __future__ import print_function
+
+#How to test runs on Digital Ocean (works because of __init__.py - https://stackoverflow.com/questions/4383571/importing-files-from-different-folder)
+#from getTwitchChatData.chatGraphAnalysis import getChatGraphAnalysis
+
+
 #import json
 #data = json.load(open('data.json'))
 
@@ -170,6 +175,29 @@ def subscribers(data):
 				subscribersComments.append(commenter)
 	uniqueSubscribersList = list(set(comment['commenter']['name'] for comment in subscribersComments))
 	return subscribersComments, uniqueSubscribersList
+
+#Things to look at
+#is_action,
+def emoteDictionary(data):
+	actions = []
+	for commenter in data[1:]:
+		if (commenter['message']['is_action'] == True):
+			actions.append(commenter)
+	return actions
+	for commenter in data[1:]:
+		if 'user_badges' in commenter['message']:
+			#userBadges = [subBadge in [badge.values() for badge in commenter['message']['user_badges']]]
+			def getUserBadgesList(commenter):
+				userBadgesList = []
+				for dictionary in commenter['message']['user_badges']:
+					for value in dictionary.values():
+						userBadgesList.append(value)
+				return userBadgesList
+			userBadgesList = getUserBadgesList(commenter)
+			if 'subscriber' in userBadgesList:
+				subscribersComments.append(commenter)
+	uniqueSubscribersList = list(set(comment['commenter']['name'] for comment in subscribersComments))
+	return emoteDictionary
 
 def findCommentsWithText(data,text):
 	#Unique commenters = edges
@@ -343,25 +371,25 @@ def updateExcel():
 		writeStreamersToCSV(csvFileName, streamerEngagementData)
 	return streamerEngagementData
 
+def getVideoPath(videoID):
+	from sys import platform
+	if platform == 'darwin':
+		videoPath = 'rechat-%s.json' % str(videoID)
+	else:
+		videoPath = 'getTwitchChatData/chatLogs/rechat-%s.json' % str(videoID)
+	return videoPath
+def videoDataExists(videoID):
+	videoPath = getVideoPath(videoID)
+	import os.path
+	if os.path.isfile(videoPath):
+		return True
+	else:
+		return False
 #UPDATE GET DATA TO INCORPORATE LINUX/OS DISSONANCE
 def getChatGraphAnalysis(twitchName):
 	# [1] Get video IDs that are at least 1 hour long
 	videoIDs = getVideosForStreamerBETTER(twitchName)
 	# [2] Download chat data for videos - HOW MANY VIDEOS NECESSARY? 5?
-	def getVideoPath(videoID):
-		from sys import platform
-		if platform == 'darwin':
-			videoPath = 'rechat-%s.json' % str(videoID)
-		else:
-			videoPath = 'getTwitchChatData/chatLogs/rechat-%s.json' % str(videoID)
-		return videoPath
-	def videoDataExists(videoID):
-		videoPath = getVideoPath(videoID)
-		import os.path
-		if os.path.isfile(videoPath):
-			return True
-		else:
-			return False
 	videoIDsToAnalyze = videoIDs[:max(5,min(len(videoIDs),0))]
 	[getData(videoID) for videoID in videoIDsToAnalyze if (videoDataExists(videoID) == False)]
 	# [3] Create graphs for each video
@@ -388,3 +416,26 @@ def getChatGraphAnalysis(twitchName):
 	for key in chatGraphAnalysis.keys():
 		chatGraphAnalysis[key] = mean(chatGraphAnalysis[key])
 	return chatGraphAnalysis
+
+#("twitchName" -> [subscriberComments], [subscriber1, subscriber2, ..., subscriberN])
+def subscribersAcrossMultipleVideos(twitchName):
+	# [1] Get list of past 5 videos (within certain parameters)
+	videoIDs = getVideosForStreamerBETTER(twitchName)
+	# [2] For each video get data if doesn't already exist
+	videoIDsToAnalyze = videoIDs[:max(5,min(len(videoIDs),0))]
+	[getData(videoID) for videoID in videoIDsToAnalyze if (videoDataExists(videoID) == False)]
+	# [3] Create subscriber lists for each video
+	import json
+	subscribersList = []
+	for videoID in videoIDsToAnalyze:
+		data = json.load(open(getVideoPath(videoID)))
+		subscribersComments, uniqueSubscribersList = subscribers(data)
+		subscribersList.append([subscribersComments, uniqueSubscribersList])
+	# [4] Aggregate lists
+	subscribersCommentsAggregated = []
+	uniqueSubscribersListAggregated = []
+	for element in subscribersList:
+		subscribersCommentsAggregated += element[0]
+		uniqueSubscribersListAggregated += element[1]
+	uniqueSubscribersListAggregated = list(set(uniqueSubscribersListAggregated))
+	return subscribersCommentsAggregated, uniqueSubscribersListAggregated

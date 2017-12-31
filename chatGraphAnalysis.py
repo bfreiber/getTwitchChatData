@@ -404,6 +404,7 @@ def getChatGraphAnalysis(twitchName):
 	import json
 	chatTheoryMetricsList = []
 	for videoID in videoIDsToAnalyze:
+		print ('Analyzing graph for' + str(videoID))
 		data = json.load(open(getVideoPath(videoID)))
 		graph = getGraph(data)
 		G = createGraphNX(graph)

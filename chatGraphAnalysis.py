@@ -6,6 +6,7 @@ from __future__ import print_function
 #from getTwitchChatData.chatGraphAnalysis import killAllChromeProcessesEitherOS, getVideosForStreamerBETTER, subscribers, getData, getVideoPath, videoDataExists
 
 
+
 #import json
 #data = json.load(open('data.json'))
 
@@ -246,6 +247,11 @@ def getGraph(data):
 				graph[node].append(name)
 	return graph
 
+def numberOfMentions(graph):
+	mentions
+	for commenter in graph.keys():
+		mentions+=len(graph[commenter])
+	return mentions
 # Graph metrics (to compare graph 1 to graph n)
 
 # Histogram
@@ -448,3 +454,64 @@ def subscribersAcrossMultipleVideos(twitchName):
 		uniqueSubscribersListAggregated += element[1]
 	uniqueSubscribersListAggregated = list(set(uniqueSubscribersListAggregated))
 	return subscribersCommentsAggregated, uniqueSubscribersListAggregated
+
+def getFilePath(csvFileName):
+	from sys import platform
+	if platform == 'darwin':
+		filePath = csvFileName
+	else:
+		filePath = 'getTwitchChatData/' + csvFileName
+	return filePath
+
+#csvFileName = 'twingeDataAnalyzedv2.csv'
+def recordVideosToAnalyze(csvFileName):
+	# [1] Determine CSV File path
+	csvFileName = getFilePath(csvFileName)
+	csvdataRows = readCSV(csvFileName)
+	# [2] Update rows
+	for row in csvdataRows[1:]:
+		# If blank
+		if row[7] == '':
+			# If meets certan criteria (average concurrents between x and y)
+			averageConcurrents = row[4]
+			if (averageConcurrents != '') and (int(averageConcurrents) > 100) and (int(averageConcurrents) <= 300):
+				twitchName = row[0]
+				videoIDs = getVideosForStreamerBETTER(twitchName)
+				videoIDsToAnalyze = videoIDs[:max(5,min(len(videoIDs),0))]
+				row[7] = len(videoIDsToAnalyze)
+				print (twitchName + ' done')
+		# [3] Save (each row)
+		writeStreamersToCSV(csvFileName, csvdataRows)
+	return csvdataRows
+
+def correlation(csvFileName):
+	# DETERMINE CSVFILENAME PATH
+	csvFileName = getFilePath(csvFileName)
+	csvdataRows = readCSV(csvFileName)
+	for row in csvdataRows[1:]:
+		twitchName = row[0]
+		# If subscribers == empty AND (currentViewers is integer) and (cuncurrentViewers > , get data
+		try:
+			row[15] = int(row[15])
+		except:
+			row[15] = '0'
+		if (row[7] == '') and (int(row[15]) >= 25) and (int(row[15]) < 500):
+			print (twitchName, row[15])
+			# [1] Get # of videos analyzed
+			videoIDs = getVideosForStreamerBETTER(twitchName)
+			videoIDsToAnalyze = videoIDs[:max(5,min(len(videoIDs),0))]
+			row[7] = len(videoIDsToAnalyze)
+			# [2] Estimate subscribers
+			subscribersCommentsAggregated, uniqueSubscribersListAggregated = subscribersAcrossMultipleVideos(twitchName)
+			row[8] = len(uniqueSubscribersListAggregated)
+			# [3] Graph connectedness
+			chatGraphAnalysis = getChatGraphAnalysis(twitchName)
+			if 'average_clustering' in chatGraphAnalysis.keys():
+				row[9] = chatGraphAnalysis['average_clustering']
+			if 'transitivity' in chatGraphAnalysis.keys():
+				row[10]  = chatGraphAnalysis['transitivity']
+			if 'density' in chatGraphAnalysis.keys():
+				row[11] = chatGraphAnalysis['density']
+	# Save
+	writeStreamersToCSV(csvFileName, csvdataRows)
+	return csvdataRows

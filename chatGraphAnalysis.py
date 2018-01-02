@@ -3,7 +3,7 @@ from __future__ import print_function
 #How to test runs on Digital Ocean (works because of __init__.py - https://stackoverflow.com/questions/4383571/importing-files-from-different-folder)
 #from getTwitchChatData.chatGraphAnalysis import getChatGraphAnalysis, subscribersAcrossMultipleVideos
 #TESTING
-#from getTwitchChatData.chatGraphAnalysis import killAllChromeProcessesEitherOS, getVideosForStreamerBETTER, subscribers, getData, getVideoPath, videoDataExists, recordVideosToAnalyze
+#from getTwitchChatData.chatGraphAnalysis import killAllChromeProcessesEitherOS, getVideosForStreamerBETTER, subscribers, getData, getVideoPath, videoDataExists, recordVideosToAnalyze, sendEmail, recordSubscribers, recordGraphTheoryMetrics
 
 
 
@@ -521,14 +521,17 @@ def recordGraphTheoryMetrics(csvFileName):
 			averageConcurrents = row[4]
 			if (averageConcurrents != '') and (int(averageConcurrents) > 100) and (int(averageConcurrents) <= 300):
 				twitchName = row[0]
-				chatGraphAnalysis = getChatGraphAnalysis(twitchName)
-				if 'average_clustering' in chatGraphAnalysis.keys():
-					row[9] = chatGraphAnalysis['average_clustering']
-				if 'transitivity' in chatGraphAnalysis.keys():
-					row[10]  = chatGraphAnalysis['transitivity']
-				if 'density' in chatGraphAnalysis.keys():
-					row[11] = chatGraphAnalysis['density']
-				print (twitchName + ' done - count: ' + str(count))
+				try:
+					chatGraphAnalysis = getChatGraphAnalysis(twitchName)
+					if 'average_clustering' in chatGraphAnalysis.keys():
+						row[9] = chatGraphAnalysis['average_clustering']
+					if 'transitivity' in chatGraphAnalysis.keys():
+						row[10]  = chatGraphAnalysis['transitivity']
+					if 'density' in chatGraphAnalysis.keys():
+						row[11] = chatGraphAnalysis['density']
+					print (twitchName + ' done - count: ' + str(count))
+				except:
+					print ('There was an error recording the graphTheoryMetrics for ' + twitchName)
 		# [3] Save (each row)
 		writeStreamersToCSV(csvFileName, csvdataRows)
 	return csvdataRows

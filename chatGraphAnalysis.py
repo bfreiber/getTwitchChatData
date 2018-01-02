@@ -3,7 +3,7 @@ from __future__ import print_function
 #How to test runs on Digital Ocean (works because of __init__.py - https://stackoverflow.com/questions/4383571/importing-files-from-different-folder)
 #from getTwitchChatData.chatGraphAnalysis import getChatGraphAnalysis, subscribersAcrossMultipleVideos
 #TESTING
-#from getTwitchChatData.chatGraphAnalysis import killAllChromeProcessesEitherOS, getVideosForStreamerBETTER, subscribers, getData, getVideoPath, videoDataExists
+#from getTwitchChatData.chatGraphAnalysis import killAllChromeProcessesEitherOS, getVideosForStreamerBETTER, subscribers, getData, getVideoPath, videoDataExists, recordVideosToAnalyze
 
 
 
@@ -463,6 +463,9 @@ def getFilePath(csvFileName):
 		filePath = 'getTwitchChatData/' + csvFileName
 	return filePath
 
+def emailCSV(csvFileName):
+	return
+
 #csvFileName = 'twingeDataAnalyzedv2.csv'
 def recordVideosToAnalyze(csvFileName):
 	# [1] Determine CSV File path
@@ -480,6 +483,52 @@ def recordVideosToAnalyze(csvFileName):
 				videoIDsToAnalyze = videoIDs[:max(5,min(len(videoIDs),0))]
 				row[7] = len(videoIDsToAnalyze)
 				print (twitchName + ' done')
+		# [3] Save (each row)
+		writeStreamersToCSV(csvFileName, csvdataRows)
+	return csvdataRows
+
+def recordSubscribers(csvFileName):
+	# [1] Determine CSV File path
+	csvFileName = getFilePath(csvFileName)
+	csvdataRows = readCSV(csvFileName)
+	# [2] Update rows
+	count = 0
+	for row in csvdataRows[1:]:
+		# If blank
+		if row[8] == '':
+			# If meets certan criteria (average concurrents between x and y)
+			averageConcurrents = row[4]
+			if (averageConcurrents != '') and (int(averageConcurrents) > 100) and (int(averageConcurrents) <= 300):
+				twitchName = row[0]
+				subscribersCommentsAggregated, uniqueSubscribersListAggregated = subscribersAcrossMultipleVideos(twitchName)
+				row[8] = len(uniqueSubscribersListAggregated)
+				count+=1
+				print (twitchName + ' done - count: ' + str(count))
+		# [3] Save (each row)
+		writeStreamersToCSV(csvFileName, csvdataRows)
+	return csvdataRows
+
+def recordGraphTheoryMetrics(csvFileName):
+	# [1] Determine CSV File path
+	csvFileName = getFilePath(csvFileName)
+	csvdataRows = readCSV(csvFileName)
+	# [2] Update rows
+	count = 0
+	for row in csvdataRows[1:]:
+		# If blank
+		if (row[9] == '') and (row[10] == '') and (row[11] == ''):
+			# If meets certan criteria (average concurrents between x and y)
+			averageConcurrents = row[4]
+			if (averageConcurrents != '') and (int(averageConcurrents) > 100) and (int(averageConcurrents) <= 300):
+				twitchName = row[0]
+				chatGraphAnalysis = getChatGraphAnalysis(twitchName)
+				if 'average_clustering' in chatGraphAnalysis.keys():
+					row[9] = chatGraphAnalysis['average_clustering']
+				if 'transitivity' in chatGraphAnalysis.keys():
+					row[10]  = chatGraphAnalysis['transitivity']
+				if 'density' in chatGraphAnalysis.keys():
+					row[11] = chatGraphAnalysis['density']
+				print (twitchName + ' done - count: ' + str(count))
 		# [3] Save (each row)
 		writeStreamersToCSV(csvFileName, csvdataRows)
 	return csvdataRows
@@ -515,3 +564,67 @@ def correlation(csvFileName):
 	# Save
 	writeStreamersToCSV(csvFileName, csvdataRows)
 	return csvdataRows
+
+# 
+def sendEmail(fileToSend):
+	import smtplib
+	import mimetypes
+	from email.mime.multipart import MIMEMultipart
+	from email import encoders
+	from email.message import Message
+	from email.mime.audio import MIMEAudio
+	from email.mime.base import MIMEBase
+	from email.mime.image import MIMEImage
+	from email.mime.text import MIMEText
+
+	fileToSend = getFilePath(fileToSend)
+
+	emailfrom = "Endorse team"
+	emailto = "brandon@endorse.gg"
+	fileToSend = fileToSend
+	username = "endorseggteam@gmail.com"
+	password = "endorseggteam$$"
+
+	msg = MIMEMultipart()
+	msg["From"] = emailfrom
+	msg["To"] = emailto
+	msg["Subject"] = "ENDORSE | " + fileToSend
+	msg.preamble = "See who's new in Twitch influencer marketing, and who's left the medium"
+	#newMarketers, oldMarketers = newSponsors(fileToSend)
+	#text = defineText(newMarketers, oldMarketers)
+
+	ctype, encoding = mimetypes.guess_type(fileToSend)
+	if ctype is None or encoding is not None:
+	    ctype = "application/octet-stream"
+
+	maintype, subtype = ctype.split("/", 1)
+
+	if maintype == "text":
+	    fp = open(fileToSend)
+	    # Note: we should handle calculating the charset
+	    attachment = MIMEText(fp.read(), _subtype=subtype)
+	    fp.close()
+	elif maintype == "image":
+	    fp = open(fileToSend, "rb")
+	    attachment = MIMEImage(fp.read(), _subtype=subtype)
+	    fp.close()
+	elif maintype == "audio":
+	    fp = open(fileToSend, "rb")
+	    attachment = MIMEAudio(fp.read(), _subtype=subtype)
+	    fp.close()
+	else:
+	    fp = open(fileToSend, "rb")
+	    attachment = MIMEBase(maintype, subtype)
+	    attachment.set_payload(fp.read())
+	    fp.close()
+	    encoders.encode_base64(attachment)
+	attachment.add_header("Content-Disposition", "attachment", filename=fileToSend)
+	msg.attach(attachment)
+	#msg.attach(MIMEText(text))
+
+	server = smtplib.SMTP("smtp.gmail.com:587")
+	server.starttls()
+	server.login(username,password)
+	server.sendmail(emailfrom, emailto, msg.as_string())
+	server.quit()
+	return

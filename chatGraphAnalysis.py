@@ -530,6 +530,7 @@ def recordGraphTheoryMetrics(csvFileName):
 					if 'density' in chatGraphAnalysis.keys():
 						row[11] = chatGraphAnalysis['density']
 					print (twitchName + ' done - count: ' + str(count))
+					count += 1
 				except:
 					print ('There was an error recording the graphTheoryMetrics for ' + twitchName)
 		# [3] Save (each row)

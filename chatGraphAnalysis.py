@@ -3,9 +3,14 @@ from __future__ import print_function
 #How to test runs on Digital Ocean (works because of __init__.py - https://stackoverflow.com/questions/4383571/importing-files-from-different-folder)
 #from getTwitchChatData.chatGraphAnalysis import getChatGraphAnalysis, subscribersAcrossMultipleVideos
 #TESTING
-#from getTwitchChatData.chatGraphAnalysis import killAllChromeProcessesEitherOS, getVideosForStreamerBETTER, subscribers, getData, getVideoPath, videoDataExists, recordVideosToAnalyze, sendEmail, recordSubscribers, recordGraphTheoryMetrics
+#from getTwitchChatData.chatGraphAnalysis import killAllChromeProcessesEitherOS, getVideosForStreamerBETTER, subscribers, getData, getVideoPath, videoDataExists, recordVideosToAnalyze, sendEmail, recordSubscribers, recordGraphTheoryMetrics, readCSV
 
+#Unidirectional vs. Directional graph?
+#Normalize for hours of graph?
+#Minimum # of comments in a graph for it to count?
 
+#[1] Get list of videos -> [videoID1, videoID2...]
+#[2] length of graph
 
 #import json
 #data = json.load(open('data.json'))
@@ -466,7 +471,7 @@ def getFilePath(csvFileName):
 def emailCSV(csvFileName):
 	return
 
-#csvFileName = 'twingeDataAnalyzedv2.csv'
+#csvFileName = 'twingeDataAnalyzedv3.csv'
 def recordVideosToAnalyze(csvFileName):
 	# [1] Determine CSV File path
 	csvFileName = getFilePath(csvFileName)
@@ -569,7 +574,34 @@ def correlation(csvFileName):
 	writeStreamersToCSV(csvFileName, csvdataRows)
 	return csvdataRows
 
-# 
+
+def mapVideosToStreamers():
+	import json
+	import os
+	from sys import platform
+
+	if platform == 'darwin':
+		filePath = "/Users/brandonfreiberg/python-projects/getTwitchChatData"
+	else:
+		filePath = "getTwitchChatData/chatLogs"
+	files = os.listdir(filePath)
+
+	videoMap = {}
+	for file in files:
+		if (len(file) >= 20) and (file[:len('rechat-')] == 'rechat-'):
+			try:
+				data = json.load(open(file))
+				twitchName = data[0]['channel']['name']
+				length = data[0]['length']#seconds
+				if twitchName not in videoMap.keys():
+					commentCount = len(data) - 1
+					videoMap[twitchName] = [{'file':file, 'commentCount':commentCount, 'length':length}]
+				else:
+					videoMap[twitchName].append({'file':file, 'commentCount':commentCount, 'length':length})
+			except:
+				print ("Error with: " + file)
+	return videoMap
+
 def sendEmail(fileToSend):
 	import smtplib
 	import mimetypes

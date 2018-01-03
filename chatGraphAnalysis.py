@@ -3,7 +3,7 @@ from __future__ import print_function
 #How to test runs on Digital Ocean (works because of __init__.py - https://stackoverflow.com/questions/4383571/importing-files-from-different-folder)
 #from getTwitchChatData.chatGraphAnalysis import getChatGraphAnalysis, subscribersAcrossMultipleVideos
 #TESTING
-#from getTwitchChatData.chatGraphAnalysis import killAllChromeProcessesEitherOS, getVideosForStreamerBETTER, subscribers, getData, getVideoPath, videoDataExists, recordVideosToAnalyze, sendEmail, recordSubscribers, recordGraphTheoryMetrics, readCSV
+#from getTwitchChatData.chatGraphAnalysis import killAllChromeProcessesEitherOS, getVideosForStreamerBETTER, subscribers, getData, getVideoPath, videoDataExists, recordVideosToAnalyze, sendEmail, recordSubscribers, recordGraphTheoryMetrics, readCSV, mapVideosToStreamers
 
 #Unidirectional vs. Directional graph?
 #Normalize for hours of graph?
@@ -586,11 +586,18 @@ def mapVideosToStreamers():
 		filePath = "getTwitchChatData/chatLogs"
 	files = os.listdir(filePath)
 
+	def getPath(filePath):
+		if platform == 'darwin':
+			filePath = filePath
+		else:
+			filePath = "getTwitchChatData/chatLogs/" + filePath
+		return filePath
+
 	videoMap = {}
 	for file in files:
 		if (len(file) >= 20) and (file[:len('rechat-')] == 'rechat-'):
 			try:
-				data = json.load(open(file))
+				data = json.load(open(getPath(file)))
 				twitchName = data[0]['channel']['name']
 				length = data[0]['length']#seconds
 				if twitchName not in videoMap.keys():
